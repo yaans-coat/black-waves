@@ -1,0 +1,272 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title id="tab-title">black-waves</title>
+    <link id="tab-icon" rel="icon" href="https://raw.githubusercontent.com/google/material-design-icons/master/png/action/visibility/mw24.png">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030303; --secondary: #111115; --accent: #00e6ff; --text: #f5f5f5;
+            --outline: rgba(255, 255, 255, 0.08); --accent-glow: rgba(0, 230, 255, 0.4);
+            --mouse-x: 50%; --mouse-y: 50%;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; text-transform: lowercase; font-family: 'Outfit', sans-serif; transition: background 0.4s, color 0.4s; }
+        body { background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; position: relative; }
+        
+        canvas#particles { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+        body::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: linear-gradient(var(--outline) 1px, transparent 1px), linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+            background-size: 50px 50px; z-index: 1; pointer-events: none;
+            mask-image: radial-gradient(circle 300px at var(--mouse-x) var(--mouse-y), black, transparent);
+        }
+
+        header { 
+            display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+            padding: 0 40px; background: rgba(3,3,3,0.85); backdrop-filter: blur(30px); 
+            border-bottom: 1px solid var(--outline); height: 75px; position: relative; z-index: 100; 
+        }
+        
+        nav { display: flex; gap: 20px; }
+        nav a { color: var(--text); text-decoration: none; opacity: 0.5; cursor: pointer; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px; }
+        nav a.active { opacity: 1; color: var(--accent); text-shadow: 0 0 15px var(--accent-glow); }
+
+        .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 15px; }
+        .user-pill { background: var(--secondary); border: 1px solid var(--accent); padding: 7px 15px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; color: var(--accent); }
+
+        .page { display: none; width: 100vw; height: calc(100vh - 75px); position: relative; z-index: 5; }
+        .page.active { display: block; }
+        iframe { width: 100%; height: 100%; border: none; background: #000; }
+
+        #home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #greet { font-size: 6rem; font-weight: 800; letter-spacing: -3px; color: var(--accent); text-shadow: 0 0 40px var(--accent-glow); }
+        .search-bar { width: 500px; padding: 22px 35px; background: var(--secondary); border: 1px solid var(--outline); border-radius: 50px; color: var(--text); text-align: center; outline: none; margin-top: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); font-size: 1rem; }
+        .search-bar:focus { width: 580px; border-color: var(--accent); box-shadow: 0 0 50px var(--accent-glow); }
+
+        .server-tag { position: fixed; bottom: 20px; right: 20px; font-family: 'JetBrains Mono'; font-size: 0.6rem; opacity: 0.3; z-index: 1000; pointer-events: none; }
+
+        /* Settings UI */
+        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); backdrop-filter: blur(30px); display: none; align-items: center; justify-content: center; z-index: 10000; }
+        .modal-box { width: 1050px; height: 720px; background: #050505; border: 1px solid var(--outline); border-radius: 35px; display: flex; overflow: hidden; box-shadow: 0 0 100px #000; }
+        .modal-sidebar { width: 250px; border-right: 1px solid var(--outline); padding: 40px 20px; display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.01); }
+        .modal-content { flex: 1; padding: 50px; overflow-y: auto; position: relative; }
+        .tab-trigger { padding: 14px 22px; border-radius: 14px; cursor: pointer; opacity: 0.4; font-size: 0.85rem; font-weight: 600; }
+        .tab-trigger.active { background: var(--secondary); opacity: 1; color: var(--accent); border: 1px solid var(--accent); }
+        .set-section { display: none; }
+        .set-section.active { display: block; }
+
+        /* Admin Specific */
+        #admin-lock { position: absolute; inset: 0; background: #050505; z-index: 500; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        #admin-console-content { display: none; }
+        .notif { position: fixed; bottom: 30px; right: 30px; background: var(--accent); color: #000; padding: 15px 30px; border-radius: 12px; font-weight: 800; z-index: 99999; animation: slideIn 0.4s ease forwards; }
+        @keyframes slideIn { from { transform: translateX(150%); } to { transform: translateX(0); } }
+        
+        .grid-ui { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 20px; }
+        .grid-item { padding: 18px; background: var(--secondary); border: 1px solid var(--outline); border-radius: 14px; cursor: pointer; text-align: center; font-size: 0.75rem; font-weight: 700; }
+        .grid-item:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+        .c-body { line-height: 1.8; opacity: 0.9; font-size: 1rem; }
+    </style>
+</head>
+<body>
+    <canvas id="particles"></canvas>
+    <div class="server-tag">server: oregon, us // v9.5</div>
+
+    <header>
+        <svg style="width:24px; fill:var(--text); cursor:pointer; opacity:0.6;" onclick="toggleModal()" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11.03L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.65 15.47,5.32 14.87,5.07L14.49,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.51,2.42L9.13,5.07C8.53,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.97 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11.03C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.95C7.96,18.35 8.53,18.68 9.13,18.93L9.51,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.49,21.58L14.87,18.93C15.47,18.68 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" /></svg>
+        <nav>
+            <a onclick="showPage('home')" id="n-home" class="active">home</a>
+            <a onclick="showPage('streaming')" id="n-streaming">streaming</a>
+            <a onclick="showPage('anime')" id="n-anime">anime</a>
+            <a onclick="showPage('ai')" id="n-ai">coat-ai</a>
+            <a onclick="showPage('games')" id="n-games">games</a>
+            <a onclick="showPage('sounds')" id="n-sounds">sounds</a>
+        </nav>
+        <div class="header-right">
+            <span class="user-pill" id="user-display">guest account</span>
+            <button class="user-pill" style="border-color:#ff4d4d; color:#ff4d4d; cursor:pointer; background:none;" onclick="location.reload()">log off</button>
+        </div>
+    </header>
+
+    <div id="home" class="page active">
+        <h1 id="greet">welcome</h1>
+        <input type="text" class="search-bar" placeholder="search the waves..." onkeydown="if(event.key==='Enter') doSearch(this.value)">
+    </div>
+    
+    <div id="streaming" class="page"><iframe src="stream.html"></iframe></div>
+    <div id="anime" class="page"><iframe src="https://animekai.gs"></iframe></div>
+    <div id="ai" class="page"><iframe src="https://coat-ai.base44.app"></iframe></div>
+    <div id="games" class="page"><iframe src="https://hoodamath.com"></iframe></div>
+    <div id="sounds" class="page"><iframe src="https://myinstants.net"></iframe></div>
+
+    <div id="modal" onclick="if(event.target==this)this.style.display='none'">
+        <div class="modal-box">
+            <div class="modal-sidebar">
+                <div class="tab-trigger active" onclick="setTab(this,'vis')">themes</div>
+                <div class="tab-trigger" onclick="setTab(this,'usr')">account</div>
+                <div class="tab-trigger" onclick="setTab(this,'adm')">admin panel</div>
+                <div class="tab-trigger" onclick="setTab(this,'crd')">credits</div>
+            </div>
+            <div class="modal-content">
+                <div id="vis" class="set-section active">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>theme engine</h3>
+                        <button class="user-pill" style="cursor:pointer;" onclick="toggleBubbles()">toggle bubbles</button>
+                    </div>
+                    <div id="theme-grid" class="grid-ui"></div>
+                </div>
+                <div id="usr" class="set-section">
+                    <h3>profile editor</h3>
+                    <input type="text" id="name-in" class="search-bar" style="width:100%; text-align:left; border-radius:15px;" placeholder="new username...">
+                    <button class="user-pill" style="width:100%; padding:15px; margin-top:15px; cursor:pointer;" onclick="updateProfile()">save changes</button>
+                </div>
+                <div id="adm" class="set-section">
+                    <div id="admin-lock">
+                        <h3 style="color:var(--accent)">encrypted access</h3>
+                        <p style="font-size:0.7rem; opacity:0.5; margin-bottom:20px;">enter master passcode to unlock system console</p>
+                        <input type="password" id="ap" class="search-bar" style="width:280px;" placeholder="passcode..." onkeydown="if(event.key==='Enter') verifyAdmin()">
+                        <button class="user-pill" style="margin-top:15px; cursor:pointer;" onclick="verifyAdmin()">unlock console</button>
+                    </div>
+                    <div id="admin-console-content">
+                        <h3>system console</h3>
+                        <div id="sys-log" style="height:400px; background:#000; padding:20px; font-family:'JetBrains Mono'; font-size:0.75rem; border-radius:15px; overflow-y:auto; margin-top:15px; border: 1px solid var(--outline); color:#0f0;">
+                            <div>> awaiting command...</div>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button class="user-pill" style="cursor:pointer; flex:1;" onclick="addLog('system flush initiated...')">flush logs</button>
+                            <button class="user-pill" style="cursor:pointer; flex:1; border-color:#ff4d4d; color:#ff4d4d;" onclick="location.reload()">reboot system</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="crd" class="set-section">
+                    <h1 style="font-size:3.5rem; font-weight:800; color:var(--accent);">credits!</h1>
+                    <div class="c-body">
+                        hiya! ya made it to the end of black-waves!<br><br>
+                        here are some credits to keep you busy reading!<br><br>
+                        <b>yaans-coat</b> - lead developer<br>
+                        <b>mrconductorr</b> - lead accounts manager<br>
+                        <b>idevs</b> - lead monetisation<br><br>
+                        <b>hoodmath.com</b> - game source<br>
+                        <b>lumina</b> - streaming source<br>
+                        <b>animekai.gs</b> - anime source<br>
+                        <b>myinstants.net</b> - soundboard source<br><br>
+                        zeo, sea, furry-consumer, white, pimple(white's old name) and to all my contributers, thank you all!<br><br>
+                        made by <b>yaans-coat</b> and others. see github for more info
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MASTER KEY: html.5.code
+        const ADMIN_HASH = "90ca0d53ba54911df532f83d06967f673e65565576a176863116816174a8677c";
+        let bubblesActive = true;
+
+        function notify(m) {
+            const n = document.createElement('div'); n.className='notif'; n.innerText=m;
+            document.body.appendChild(n); setTimeout(()=>n.remove(), 3000);
+        }
+
+        async function verifyAdmin() {
+            const val = document.getElementById('ap').value;
+            const buffer = new TextEncoder().encode(val);
+            const digest = await crypto.subtle.digest('SHA-256', buffer);
+            const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            if(hex === ADMIN_HASH) {
+                document.getElementById('admin-lock').style.display='none';
+                document.getElementById('admin-console-content').style.display='block';
+                notify("admin access granted");
+                addLog("yaans-coat authenticated admin privileges");
+                addLog("system core: online");
+            } else { 
+                notify("access denied"); 
+                addLog("failed authentication attempt");
+            }
+        }
+
+        function updateProfile() {
+            const val = document.getElementById('name-in').value;
+            if(val) { document.getElementById('user-display').innerText = val; notify(`profile: ${val}`); }
+        }
+
+        function addLog(msg) {
+            const log = document.getElementById('sys-log');
+            if(log) {
+                const line = document.createElement('div');
+                line.style.marginBottom = "5px";
+                line.innerHTML = `<span style="color:var(--accent)">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+                log.prepend(line);
+            }
+        }
+
+        function doSearch(q) { addLog(`outbound search: ${q}`); window.open(`https://google.com/search?q=${encodeURIComponent(q)}`); }
+
+        // Particles
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let pts = [];
+        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+        window.onresize();
+
+        class Particle {
+            constructor() { this.x = Math.random()*canvas.width; this.y = Math.random()*canvas.height; this.v = Math.random()*0.3+0.1; this.s = Math.random()*1.5; }
+            draw() { ctx.fillStyle = "rgba(0, 230, 255, 0.15)"; ctx.beginPath(); ctx.arc(this.x, this.y, this.s, 0, Math.PI*2); ctx.fill(); this.y -= this.v; if(this.y < 0) this.y = canvas.height; }
+        }
+        for(let i=0; i<60; i++) pts.push(new Particle());
+        function anim() { ctx.clearRect(0,0,canvas.width, canvas.height); if(bubblesActive) pts.forEach(p => p.draw()); requestAnimationFrame(anim); }
+        anim();
+
+        function toggleBubbles() { bubblesActive = !bubblesActive; notify(`bubbles: ${bubblesActive?'on':'off'}`); }
+
+        const themes = [
+            {n:"Onyx", g:"#030303", acc:"#00e6ff", t:"#fff", d:true}, {n:"Dracula", g:"#282a36", acc:"#bd93f9", t:"#fff", d:true},
+            {n:"Nord", g:"#2e3440", acc:"#88c0d0", t:"#fff", d:true}, {n:"Toxic", g:"#051a10", acc:"#00ffaa", t:"#fff", d:true},
+            {n:"Midnight", g:"#001220", acc:"#33b5e5", t:"#fff", d:true}, {n:"Rose", g:"#1a050d", acc:"#ff79c6", t:"#fff", d:true},
+            {n:"Amoled", g:"#000000", acc:"#ffffff", t:"#888", d:true}, {n:"Slate", g:"#1e293b", acc:"#94a3b8", t:"#fff", d:true},
+            {n:"Coffee", g:"#1b1411", acc:"#d4a373", t:"#fff", d:true}, {n:"Ocean", g:"#011627", acc:"#4fc3f7", t:"#fff", d:true},
+            {n:"Snow", g:"#f8fafc", acc:"#0f172a", t:"#000", d:false}, {n:"Latte", g:"#eff1f5", acc:"#7c7f93", t:"#4c4f69", d:false},
+            {n:"Sakura", g:"#fff5f7", acc:"#d22d7d", t:"#5d2a42", d:false}, {n:"Mint", g:"#f0fff4", acc:"#276749", t:"#22543d", d:false},
+            {n:"Sky", g:"#f0f9ff", acc:"#0369a1", t:"#0c4a6e", d:false}, {n:"Lemon", g:"#fefce8", acc:"#854d0e", t:"#713f12", d:false},
+            {n:"Lavender", g:"#f5f3ff", acc:"#5b21b6", t:"#4c1d95", d:false}, {n:"Ghost", g:"#ffffff", acc:"#000000", t:"#000", d:false},
+            {n:"Paper", g:"#f4f1ea", acc:"#3d3d3d", t:"#000", d:false}, {n:"Clay", g:"#fdfcfb", acc:"#854d0e", t:"#451a03", d:false}
+        ];
+
+        themes.forEach(t => {
+            const d = document.createElement('div'); d.className = 'grid-item'; d.innerText = t.n;
+            d.style.background = t.d ? "#111" : "#eee"; d.style.color = t.d ? "#fff" : "#000";
+            d.onclick = () => {
+                document.documentElement.style.setProperty('--bg', t.g);
+                document.documentElement.style.setProperty('--accent', t.acc);
+                document.documentElement.style.setProperty('--text', t.t);
+                addLog(`theme adjusted: ${t.n}`);
+            };
+            document.getElementById('theme-grid').appendChild(d);
+        });
+
+        document.addEventListener('mousemove', e => {
+            document.documentElement.style.setProperty('--mouse-x', e.clientX + 'px');
+            document.documentElement.style.setProperty('--mouse-y', e.clientY + 'px');
+        });
+
+        window.setTab = (el, id) => {
+            document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.set-section').forEach(s => s.classList.remove('active'));
+            el.classList.add('active'); document.getElementById(id).classList.add('active');
+        };
+
+        window.showPage = (id) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById(id).classList.add('active'); 
+            const navBtn = document.getElementById('n-'+id);
+            if(navBtn) navBtn.classList.add('active');
+        };
+
+        function toggleModal() { const m = document.getElementById('modal'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
+        window.onload = () => addLog("session live // black-waves v9.5");
+    </script>
+</body>
+</html>

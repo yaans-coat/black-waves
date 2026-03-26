@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#030303">
+    <title>LUMINA PLATINUM TV</title>
+    <!-- Use standard loaded font matching the design -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #00e6ff;
+            --accent-glow: rgba(0, 230, 255, 0.5);
+            --bg: #030303;
+            --glass: rgba(20, 20, 25, 0.7);
+            --glass-fallback: rgba(15, 15, 17, 0.95);
+            --danger: #ff2a55;
+            --ease: cubic-bezier(0.2, 1, 0.3, 1);
+            --text-main: #f5f5f5;
+            --text-dim: #999999;
+            --focus-ring: 4px solid var(--accent);
+            --overscan-x: 6vw;
+            --overscan-y: 5vh;
+        }
+
+        /* Base & TV Re-sets */
+        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; margin: 0; padding: 0; outline: none; }
+        ::-webkit-scrollbar { display: none; } 
+        body, html { 
+            background: var(--bg); color: var(--text-main); 
+            font-family: 'Outfit', sans-serif; 
+            width: 100vw; height: 100vh; overflow: hidden; 
+            font-size: 1.1vw; 
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* WebOS D-PAD FOCUS ENGINE */
+        :focus {
+            outline: var(--focus-ring) !important;
+            outline-offset: 8px;
+            box-shadow: 0 0 40px var(--accent-glow);
+            transform: scale(1.08);
+            z-index: 50;
+            border-radius: inherit;
+        }
+
+        /* Fixes for inset and gap */
+        .flex-gap-2rem { display: flex; justify-content: center; }
+        .flex-gap-2rem > * + * { margin-left: 2rem; }
+
+        /* SECURITY LAYER */
+        #player-view { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 99999; display: none; }
+        .iframe-jail { width: 100%; height: 100%; border: none; }
+        .player-err { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; background: #000; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .fade-in { animation: fadeIn 0.8s var(--ease) forwards; }
+
+        /* Profile Screen */
+        #profile-screen { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: radial-gradient(circle at center, #181822 0%, var(--bg) 100%); 
+            z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+        }
+        #p-list { display: flex; justify-content: center; flex-wrap: wrap; margin-bottom: 10vh; }
+        #p-list > * + * { margin-left: 4vw; }
+        .p-card { 
+            position: relative; transition: 0.5s var(--ease); cursor: pointer; 
+            border-radius: 20px; padding: 1.5rem; text-align: center;
+        }
+        .p-avatar { 
+            width: 12vw; height: 12vw; min-width: 150px; border-radius: 35%; 
+            background: linear-gradient(145deg, #2b2b36, #111115); 
+            border: 2px solid rgba(255,255,255,0.08); 
+            font-size: 4rem; display: flex; align-items: center; justify-content: center; 
+            font-weight: 300; transition: 0.5s var(--ease);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            margin: 0 auto;
+        }
+        .p-card:hover .p-avatar, .p-card:focus .p-avatar { 
+            transform: scale(1.15); border-color: var(--accent); 
+            box-shadow: 0 0 70px var(--accent-glow); 
+        }
+        .managing .p-card { animation: wiggle 0.4s infinite; }
+        @keyframes wiggle { 0% { transform: rotate(0deg); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } 100% { transform: rotate(0deg); } }
+        .del-btn { 
+            position: absolute; top: 0.5rem; right: 0.5rem; background: var(--danger); 
+            color: #fff; width: 3.5rem; height: 3.5rem; border-radius: 50%; display: none; 
+            align-items: center; justify-content: center; font-weight: 800; font-size: 1.5rem;
+            z-index: 10; cursor: pointer; box-shadow: 0 10px 20px rgba(255, 42, 85, 0.5);
+            transition: 0.3s;
+        }
+        .del-btn:focus, .del-btn:hover { transform: scale(1.2); outline: none !important; }
+        .managing .del-btn { display: flex; }
+
+        /* Navbar */
+        nav { 
+            position: fixed; top: 0; width: 100%; padding: var(--overscan-y) var(--overscan-x); 
+            background: linear-gradient(to bottom, rgba(3,3,3,0.95) 0%, rgba(3,3,3,0) 100%); 
+            z-index: 1000; display: flex; align-items: center; justify-content: space-between; 
+            -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+        }
+        .logo { font-weight: 800; font-size: 3rem; color: var(--accent); cursor: pointer; text-shadow: 0 0 35px var(--accent-glow); letter-spacing: 3px; }
+        .search-wrap { position: relative; flex: 1; max-width: 35vw; margin: 0 4vw; }
+        .search-bar { 
+            background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.1); 
+            padding: 1.4rem 2.5rem; border-radius: 60px; width: 100%; color: var(--text-main); 
+            transition: 0.4s var(--ease); font-size: 1.4rem; font-family: inherit; font-weight: 600;
+        }
+        .search-bar::placeholder { color: rgba(255,255,255,0.3); font-weight: 400; }
+        .search-bar:focus { 
+            border-color: var(--accent); background: rgba(255,255,255,0.12); 
+            box-shadow: 0 0 40px var(--accent-glow); transform: scale(1.05); outline: none !important;
+        }
+        
+        #search-suggest { 
+            position: absolute; top: calc(100% + 20px); left: 0; right: 0; 
+            background: var(--glass-fallback);
+            -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); 
+            border-radius: 20px; 
+            border: 1px solid rgba(255,255,255,0.15); overflow: hidden; display: none; 
+            box-shadow: 0 40px 80px rgba(0,0,0,0.9); z-index: 1500;
+        }
+        .suggest-item { 
+            padding: 1.5rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.05); 
+            cursor: pointer; display: flex; align-items: center; transition: 0.3s; 
+            font-size: 1.4rem; font-weight: 600;
+        }
+        .suggest-item img { border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.6); margin-right: 1.5rem; }
+        .suggest-item:hover, .suggest-item:focus { background: rgba(0, 230, 255, 0.2); color: #fff; outline: none !important; transform: scale(1.02); }
+
+        .user-pill { 
+            padding: 1.2rem 2.8rem; background: rgba(255,255,255,0.08); border-radius: 50px; 
+            font-size: 1.2rem; font-weight: 800; border: 2px solid rgba(255,255,255,0.1);
+            -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); cursor: pointer; transition: 0.4s;
+            letter-spacing: 1px;
+        }
+        .user-pill:hover, .user-pill:focus { background: rgba(255,255,255,0.2); border-color: var(--accent); box-shadow: 0 0 30px var(--accent-glow); outline:none !important; transform: scale(1.08); }
+
+        /* Main Content */
+        #main-content { 
+            height: 100vh; overflow-y: scroll; scroll-behavior: smooth;
+            padding-bottom: calc(var(--overscan-y) * 2); 
+        }
+        .hero { 
+            height: 85vh; width: 100%; position: relative; display: flex; 
+            align-items: flex-end; padding: 0 var(--overscan-x) 10vh; 
+            background-size: cover; background-position: center; 
+            transition: background-image 1.5s ease-in-out;
+        }
+        .hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to right, #030303 0%, rgba(3,3,3,0.2) 65%, transparent 100%); }
+        .hero::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, var(--bg) 0%, transparent 45%); }
+        .hero-meta { position: relative; z-index: 5; max-width: 55%; animation: fadeIn 1s var(--ease); }
+        .hero-title { font-size: 6.5rem; margin: 0; line-height: 1.05; font-weight: 800; text-shadow: 0 15px 50px rgba(0,0,0,1); letter-spacing: -2px; }
+        .hero-desc { opacity: 0.85; margin: 1.8rem 0 3.5rem; font-size: 1.6rem; line-height: 1.6; text-shadow: 0 5px 20px rgba(0,0,0,1); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-weight: 400; }
+        
+        /* Grid (Fixed for WebOS lack of aspect-ratio/gap) */
+        .row { margin: 4rem 0 2vh var(--overscan-x); }
+        .row-title { font-size: 1.8rem; font-weight: 800; letter-spacing: 4px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2rem; text-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+        .shelf { display: flex; overflow-x: auto; padding: 1rem var(--overscan-x) 4rem 0; scroll-behavior: smooth; }
+        .shelf > * + * { margin-left: 2.5vw; }
+        .card { 
+            flex: 0 0 auto; 
+            width: 14vw; height: 21vw; min-width: 200px; min-height: 300px;
+            position: relative; 
+            border-radius: 18px; overflow: hidden; cursor: pointer; transition: 0.5s var(--ease); 
+            background: #111; border: 4px solid transparent; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+        .card:hover, .card:focus { 
+            transform: scale(1.12); z-index: 2; border-color: var(--accent);
+            box-shadow: 0 30px 60px rgba(0, 230, 255, 0.35); 
+            outline: none !important; 
+        }
+        .card img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .card-del { 
+            position: absolute; top: 1rem; right: 1rem; background: var(--danger); color: #fff;
+            width: 3.5rem; height: 3.5rem; border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; opacity: 0; transition: 0.3s; z-index: 10; font-size: 1.6rem;
+            box-shadow: 0 10px 25px rgba(255,42,85,0.6);
+        }
+        .card:hover .card-del, .card:focus .card-del { opacity: 1; }
+        .card-del:focus, .card-del:hover { transform: scale(1.2); opacity: 1; outline: none !important; }
+
+        /* Buttons */
+        .btn { 
+            padding: 1.5rem 3.5rem; border-radius: 60px; border: none; font-weight: 800; 
+            cursor: pointer; transition: 0.4s var(--ease); font-size: 1.4rem; font-family: inherit;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn-glow { background: var(--accent); color: #000; box-shadow: 0 0 30px var(--accent-glow); }
+        .btn-glow:hover, .btn-glow:focus { transform: translateY(-5px) scale(1.05); box-shadow: 0 20px 50px var(--accent-glow); outline: none !important; background: #fff; }
+        .btn-ghost { background: rgba(255,255,255,0.1); color: #fff; border: 2px solid rgba(255,255,255,0.15); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px); }
+        .btn-ghost:hover, .btn-ghost:focus { background: rgba(255,255,255,0.25); border-color: var(--accent); transform: translateY(-5px) scale(1.05); outline: none !important; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+
+        /* Modals */
+        .overlay { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0,0,0,0.85); z-index: 20000; 
+            display: none; align-items: center; justify-content: center; 
+            -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); 
+        }
+        .glass-box { 
+            background: var(--glass-fallback); padding: 5rem; border-radius: 40px; width: 45vw; min-width: 650px;
+            text-align: center; border: 1px solid rgba(255,255,255,0.15); animation: scaleIn 0.6s var(--ease);
+            box-shadow: 0 50px 100px rgba(0,0,0,0.9);
+        }
+        #acc-name-input { 
+            width: 100%; padding: 2rem; background: rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.15); 
+            color: #fff; border-radius: 20px; margin: 3rem 0; font-size: 2.2rem; text-align: center; 
+            transition: 0.4s; font-family: inherit; font-weight: 600;
+        }
+        #acc-name-input:focus { border-color: var(--accent); box-shadow: 0 0 50px var(--accent-glow); outline: none !important; transform: scale(1.03); background: rgba(0,0,0,0.8); }
+
+        /* Player Overlays */
+        .player-controls { position:absolute; top:var(--overscan-y); left:var(--overscan-x); z-index:10; display:flex; align-items: center;}
+        .player-controls > * + * { margin-left: 2rem; }
+        
+        #tv-controls { display:none; align-items: center; }
+        #tv-controls > * + * { margin-left: 1.5rem; }
+
+        .tv-select {
+            background: var(--glass-fallback); border: 2px solid rgba(255,255,255,0.25); color: #fff; 
+            padding: 1.3rem 2.8rem; border-radius: 60px; font-size: 1.4rem; cursor: pointer; transition: 0.4s var(--ease);
+            -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); font-family: inherit; font-weight: 800;
+        }
+        .tv-select:focus, .tv-select:hover { border-color: var(--accent); transform: scale(1.08); outline: none !important; box-shadow: 0 0 30px var(--accent-glow); background: rgba(30,30,30,0.9); }
+        .tv-select option { background: #111; color: #fff; padding: 10px; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<script>
+    window.open = function() { console.warn("LUMINA: Redirect blocked."); return null; };
+</script>
+
+<div id="modal-account" class="overlay">
+    <div class="glass-box">
+        <h1 style="font-weight: 800; font-size: 4rem; margin: 0; letter-spacing: 2px;">NEW PROFILE</h1>
+        <p style="opacity: 0.6; font-size: 1.5rem; margin-top: 1rem;">Enter a name to sync your history</p>
+        <input type="text" id="acc-name-input" placeholder="Discovery..." tabindex="0">
+        <div class="flex-gap-2rem">
+            <button class="btn btn-glow" onclick="createAccount()" tabindex="0">Confirm</button>
+            <button class="btn btn-ghost" onclick="closeModals()" tabindex="0">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="profile-screen">
+    <h1 style="font-weight: 200; font-size: 6rem; letter-spacing: 35px; margin-bottom: 8vh; text-shadow: 0 0 50px rgba(255,255,255,0.15);" class="fade-in">LUMINA</h1>
+    <div id="p-list"></div>
+    <div class="flex-gap-2rem fade-in">
+        <button class="btn btn-glow" onclick="showAddAcc()" tabindex="0">+ Create Profile</button>
+        <button class="btn btn-ghost" onclick="toggleManage()" tabindex="0" id="btn-manage-profiles">Edit Profiles</button>
+    </div>
+</div>
+
+<div id="main-ui" style="display:none">
+    <nav>
+        <div class="logo" onclick="goHome()" tabindex="0">LUMINA</div>
+        <div class="search-wrap">
+            <input type="text" id="main-search" class="search-bar" placeholder="Movies, TV, People..." autocomplete="off" tabindex="0">
+            <div id="search-suggest"></div>
+        </div>
+        <div id="user-pill" class="user-pill" onclick="logout()" tabindex="0" title="Sign Out"></div>
+    </nav>
+
+    <div id="main-content">
+        <div id="hero" class="hero">
+            <div class="hero-meta">
+                <h1 id="hero-title" class="hero-title">---</h1>
+                <p id="hero-desc" class="hero-desc"></p>
+                <button class="btn btn-glow" id="hero-btn" tabindex="0">▶ Watch Now</button>
+            </div>
+        </div>
+
+        <div id="row-history" class="row" style="display:none">
+            <div class="row-title">Continue Watching</div>
+            <div id="shelf-history" class="shelf"></div>
+        </div>
+
+        <div class="row">
+            <div id="row-dynamic-title" class="row-title">Trending Now</div>
+            <div id="shelf-main" class="shelf"></div>
+        </div>
+    </div>
+</div>
+
+<div id="player-view">
+    <div class="player-err" id="player-err">
+        <h1 style="font-size: 4.5rem; font-weight: 800; letter-spacing: 2px;">MEDIA UNAVAILABLE</h1>
+        <p style="opacity:0.6; font-size: 1.6rem; margin-bottom: 3.5rem;">This source is currently offline or blocked by your region.</p>
+        <button class="btn btn-glow" onclick="closePlayer()" tabindex="0">Go Back</button>
+    </div>
+    <div class="player-controls">
+        <button class="btn btn-ghost" onclick="closePlayer()" tabindex="0">✕ Close</button>
+        <div id="tv-controls">
+            <select id="sel-s" class="tv-select" onchange="changeEp()" tabindex="0"></select>
+            <select id="sel-e" class="tv-select" onchange="changeEp()" tabindex="0"></select>
+        </div>
+    </div>
+    <div id="iframe-mount" style="width:100%; height:100%;"></div>
+</div>
+
+<script>
+    const TMDB_API = 'ebbc810d0c9a9a4a13a264f96897036e';
+    const SUPA_URL = 'https://nkjizlebtlmgmtqaonot.supabase.co/rest/v1/watch_history';
+    const SUPA_KEY = 'sb_publishable_6orhng6zssRe45KcOFnqXQ_78xgw6Oc';
+
+    let accounts = [];
+    try {
+        accounts = JSON.parse(localStorage.getItem('lumina_v5')) || ["Guest"];
+    } catch(e) {
+        accounts = ["Guest"];
+    }
+    
+    let activeUser = null;
+    let isManaging = false;
+    let currentId = null;
+
+    document.addEventListener('focus', function(e) {
+        if(e.target && typeof e.target.scrollIntoView === 'function' && e.target.classList.contains('card')) {
+            e.target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+    }, true);
+
+    function renderProfiles() {
+        const list = document.getElementById('p-list');
+        list.className = isManaging ? 'managing fade-in' : 'fade-in';
+        list.innerHTML = accounts.map(a => `
+            <div class="p-card" onclick="login('${a}')" tabindex="0" onkeypress="if(event.key==='Enter') login('${a}')">
+                <div class="del-btn" onclick="deleteAccount(event, '${a}')" tabindex="0" onkeypress="if(event.key==='Enter') deleteAccount(event, '${a}')">✕</div>
+                <div class="p-avatar">${a[0]}</div>
+                <div style="margin-top:25px; font-weight:800; font-size: 1.6rem; letter-spacing:1px; text-align:center;">${a}</div>
+            </div>
+        `).join('');
+        document.getElementById('btn-manage-profiles').innerText = isManaging ? "Done Editing" : "Edit Profiles";
+    }
+
+    function showAddAcc() { document.getElementById('modal-account').style.display = 'flex'; document.getElementById('acc-name-input').focus(); }
+    function closeModals() { document.querySelectorAll('.overlay').forEach(o => o.style.display = 'none'); }
+    
+    function createAccount() {
+        const name = document.getElementById('acc-name-input').value.trim();
+        if(name && !accounts.includes(name)) {
+            accounts.push(name);
+            localStorage.setItem('lumina_v5', JSON.stringify(accounts));
+            renderProfiles();
+            closeModals();
+            document.getElementById('acc-name-input').value = '';
+        }
+    }
+
+    function deleteAccount(e, name) {
+        e.stopPropagation();
+        if(name === "Guest") return;
+        accounts = accounts.filter(a => a !== name);
+        localStorage.setItem('lumina_v5', JSON.stringify(accounts));
+        renderProfiles();
+    }
+
+    function toggleManage() { isManaging = !isManaging; renderProfiles(); }
+
+    function login(name) {
+        if(isManaging) return;
+        activeUser = name;
+        document.getElementById('profile-screen').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        document.getElementById('user-pill').innerText = name.toUpperCase();
+        loadHome();
+        setTimeout(() => document.getElementById('main-search').focus(), 500);
+    }
+    
+    function logout() {
+        activeUser = null;
+        document.getElementById('main-ui').style.display = 'none';
+        document.getElementById('profile-screen').style.display = 'flex';
+        renderProfiles();
+    }
+
+    async function loadHome() {
+        const res = await fetch(`https://api.themoviedb.org/3/trending/all/day?api_key=${TMDB_API}`);
+        const data = await res.json();
+        const featured = data.results[0];
+        document.getElementById('hero').style.backgroundImage = `url(https://image.tmdb.org/t/p/original${featured.backdrop_path})`;
+        document.getElementById('hero-title').innerText = featured.title || featured.name;
+        document.getElementById('hero-desc').innerText = (featured.overview || '').slice(0, 220) + '...';
+        
+        const heroBtn = document.getElementById('hero-btn');
+        heroBtn.onclick = () => playMedia(featured.media_type, featured.id);
+        heroBtn.onkeypress = (e) => { if(e.key === 'Enter') playMedia(featured.media_type, featured.id); };
+        
+        renderGrid(data.results, 'shelf-main');
+        loadHistory();
+    }
+
+    function renderGrid(items, targetId) {
+        document.getElementById(targetId).innerHTML = items.map(i => i.poster_path ? `
+            <div class="card fade-in" onclick="playMedia('${i.media_type||'movie'}', ${i.id})" tabindex="0" onkeypress="if(event.key==='Enter') playMedia('${i.media_type||'movie'}', ${i.id})">
+                <img src="https://image.tmdb.org/t/p/w500${i.poster_path}" loading="lazy" alt="Poster">
+            </div>
+        ` : '').join('');
+    }
+
+    async function playMedia(type, id, s=1, e=1) {
+        currentId = id;
+        const view = document.getElementById('player-view');
+        const mount = document.getElementById('iframe-mount');
+        const err = document.getElementById('player-err');
+        
+        view.style.display = 'block';
+        err.style.display = 'none';
+        
+        const url = type === 'movie' 
+            ? `https://www.vidking.net/embed/movie/${id}` 
+            : `https://www.vidking.net/embed/tv/${id}/${s}/${e}`;
+
+        mount.innerHTML = `<iframe 
+            src="${url}" 
+            class="iframe-jail"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" 
+            allowfullscreen="true">
+        </iframe>`;
+        
+        setTimeout(() => {
+            if(!mount.innerHTML.includes('iframe')) {
+                err.style.display = 'flex';
+                err.querySelector('button').focus();
+            }
+        }, 5000);
+
+        if(type === 'tv') {
+            document.getElementById('tv-controls').style.display = 'flex';
+            const tv = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${TMDB_API}`).then(r => r.json());
+            document.getElementById('sel-s').innerHTML = tv.seasons.map(sea => `<option value="${sea.season_number}" ${sea.season_number==s?'selected':''}>Season ${sea.season_number}</option>`).join('');
+            const epData = await fetch(`https://api.themoviedb.org/3/tv/${id}/season/${s}?api_key=${TMDB_API}`).then(r => r.json());
+            document.getElementById('sel-e').innerHTML = epData.episodes.map(ep => `<option value="${ep.episode_number}" ${ep.episode_number==e?'selected':''}>Episode ${ep.episode_number}</option>`).join('');
+        } else {
+            document.getElementById('tv-controls').style.display = 'none';
+        }
+        saveHistory(type, id, s, e);
+    }
+
+    function changeEp() {
+        playMedia('tv', currentId, document.getElementById('sel-s').value, document.getElementById('sel-e').value);
+    }
+
+    function closePlayer() {
+        document.getElementById('player-view').style.display = 'none';
+        document.getElementById('iframe-mount').innerHTML = '';
+        setTimeout(() => document.getElementById('main-search').focus(), 100);
+        loadHistory();
+    }
+
+    async function saveHistory(type, id, s, e) {
+        try {
+            const rows = await fetch(`${SUPA_URL}?user_ip=eq.${activeUser}`, { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }).then(r => r.json());
+            const data = rows[0]?.data || {};
+            data[id] = { type, s, e, ts: Date.now() };
+            await fetch(SUPA_URL, {
+                method: 'POST',
+                headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+                body: JSON.stringify({ user_ip: activeUser, data })
+            });
+        } catch(err) { console.warn("Sync failed"); }
+    }
+
+    async function removeHistory(id) {
+        try {
+            const rows = await fetch(`${SUPA_URL}?user_ip=eq.${activeUser}`, { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }).then(r => r.json());
+            const data = rows[0]?.data || {};
+            delete data[id];
+            await fetch(SUPA_URL, {
+                method: 'POST',
+                headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+                body: JSON.stringify({ user_ip: activeUser, data })
+            });
+            loadHistory();
+        } catch(err) {}
+    }
+
+    async function loadHistory() {
+        try {
+            const rows = await fetch(`${SUPA_URL}?user_ip=eq.${activeUser}`, { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }).then(r => r.json());
+            if(rows[0]?.data) {
+                const items = Object.entries(rows[0].data).sort((a,b) => b[1].ts - a[1].ts).slice(0, 10);
+                if(items.length === 0) { document.getElementById('row-history').style.display = 'none'; return; }
+                document.getElementById('row-history').style.display = 'block';
+                const shelf = document.getElementById('shelf-history');
+                shelf.innerHTML = '';
+                for(const [id, meta] of items) {
+                    const info = await fetch(`https://api.themoviedb.org/3/${meta.type}/${id}?api_key=${TMDB_API}`).then(r => r.json());
+                    shelf.innerHTML += `
+                        <div class="card fade-in" tabindex="0" onclick="playMedia('${meta.type}', ${id}, ${meta.s}, ${meta.e})" onkeypress="if(event.key==='Enter') playMedia('${meta.type}', ${id}, ${meta.s}, ${meta.e})">
+                            <div class="card-del" tabindex="0" onclick="event.stopPropagation(); removeHistory(${id})" onkeypress="if(event.key==='Enter') { event.stopPropagation(); removeHistory(${id}); }">✕</div>
+                            <img src="https://image.tmdb.org/t/p/w342${info.poster_path}" loading="lazy" alt="Poster">
+                        </div>`;
+                }
+            }
+        } catch(err) {}
+    }
+
+    const sInput = document.getElementById('main-search');
+    const sSuggest = document.getElementById('search-suggest');
+
+    sInput.addEventListener('input', async (e) => {
+        const q = e.target.value;
+        if(q.length < 2) { sSuggest.style.display = 'none'; return; }
+        const data = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API}&query=${q}`).then(r => r.json());
+        sSuggest.innerHTML = data.results.slice(0, 5).map(i => `
+            <div class="suggest-item" tabindex="0" onclick="handleSearchSelect('${i.title||i.name}')" onkeypress="if(event.key==='Enter') handleSearchSelect('${i.title||i.name}')">
+                <img src="https://image.tmdb.org/t/p/w92${i.poster_path||''}" width="45" alt="">
+                <span>${i.title || i.name}</span>
+            </div>
+        `).join('');
+        sSuggest.style.display = 'block';
+    });
+
+    function handleSearchSelect(name) { sInput.value = name; sSuggest.style.display = 'none'; executeSearch(name); }
+    sInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') { document.getElementById('hero-btn').focus(); executeSearch(sInput.value); } });
+
+    async function executeSearch(q) {
+        document.getElementById('row-dynamic-title').innerText = "Results for: " + q;
+        document.getElementById('row-history').style.display = 'none';
+        const data = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API}&query=${q}`).then(r => r.json());
+        renderGrid(data.results, 'shelf-main');
+        sSuggest.style.display = 'none';
+    }
+
+    function goHome() {
+        document.getElementById('row-dynamic-title').innerText = "Trending Now";
+        sInput.value = "";
+        loadHome();
+    }
+
+    renderProfiles();
+</script>
+</body>
+</html>
