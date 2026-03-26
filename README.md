@@ -13,6 +13,8 @@ a really cool web proxy collab for students and others alike!
 
 you **cannot** deploy black-waves on any static hosting services!
 
+if running localy navigate to the black-waves main folder and go to public --> inex.html
+
 ## credits
 
 first ever collab! 💕
@@ -26,8 +28,6 @@ idevs - content flow manager
 - [hooda-math](https://www.hoodamath.com/games/snowrider3d.html#gsc.tab=0) - game source
 
 ## star history
-
-## Star History
 
 <a href="https://www.star-history.com/?repos=yaans-coat%2Fblack-waves&type=date&legend=top-left">
  <picture>
