@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title id="tab-title">black-waves</title>
+    <link id="tab-icon" rel="icon" href="https://i.postimg.cc/0j0vD8m8/Gemini-Generated-Image-6ppndp6ppndp6ppn.png">
+    <link rel="stylesheet" href="animations/grid.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030303; --secondary: #0a0a0c; --accent: #ffffff; --text: #f5f5f5;
+            --outline: rgba(255, 255, 255, 0.05); --accent-glow: rgba(255, 255, 255, 0.2);
+            --ease: cubic-bezier(0.2, 1, 0.3, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; text-transform: lowercase; font-family: 'Outfit', sans-serif; }
+        body { background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; position: relative; }
+        
+        canvas#particles { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+
+        header { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 30px; height: 75px; z-index: 1000; position: relative;
+            border-bottom: 1px solid var(--outline); background: rgba(0,0,0,0.6); backdrop-filter: blur(20px);
+        }
+
+        nav { display: flex; gap: 22px; align-items: center; position: absolute; left: 50%; transform: translateX(-50%); }
+        nav a { color: var(--text); text-decoration: none; opacity: 0.4; cursor: pointer; font-weight: 600; font-size: 0.8rem; transition: 0.3s; white-space: nowrap; }
+        nav a.active { opacity: 1; color: var(--accent); }
+
+        .header-right { display: flex; align-items: center; min-width: 40px; justify-content: flex-end; }
+        .gear-icon { width: 22px; height: 22px; cursor: pointer; fill: var(--text); opacity: 0.5; transition: 0.6s var(--ease); display: block; }
+        .gear-icon:hover { opacity: 1; transform: rotate(90deg); fill: var(--accent); filter: drop-shadow(0 0 10px var(--accent-glow)); }
+
+        .page { display: none; width: 100vw; height: calc(100vh - 75px); position: relative; z-index: 5; }
+        .page.active { display: block; }
+        iframe { width: 100%; height: 100%; border: none; background: #000; }
+
+        #home.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #greet { font-size: 7rem; font-weight: 800; letter-spacing: -5px; color: var(--accent); margin-bottom: 20px; }
+
+        .search-bar { 
+            width: 450px; padding: 20px 35px; background: rgba(255,255,255,0.03); 
+            border: 1px solid var(--outline); border-radius: 100px; color: var(--text); 
+            text-align: center; outline: none; transition: 0.6s var(--ease); z-index: 10;
+        }
+        .search-bar:focus { width: 550px; border-color: var(--accent); background: rgba(0,0,0,0.8); box-shadow: 0 0 60px var(--accent-glow); }
+
+        #modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(25px); display: none; align-items: center; justify-content: center; z-index: 11000; }
+        .modal-box { width: 900px; height: 600px; background: #050505; border: 1px solid var(--outline); border-radius: 35px; display: flex; overflow: hidden; }
+        .modal-sidebar { width: 210px; border-right: 1px solid var(--outline); padding: 40px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .modal-content { flex: 1; padding: 45px; overflow-y: auto; }
+        
+        .tab-trigger { padding: 14px 20px; border-radius: 15px; cursor: pointer; opacity: 0.4; font-size: 0.8rem; font-weight: 700; transition: 0.3s; }
+        .tab-trigger.active { opacity: 1; background: rgba(255,255,255,0.05); color: var(--accent); }
+
+        .set-section { display: none; }
+        .set-section.active { display: block; }
+
+        .auth-input { width: 100%; padding: 15px; background: #0a0a0a; border: 1px solid var(--outline); border-radius: 12px; color: white; margin-bottom: 10px; outline: none; }
+        .auth-btn { width: 100%; padding: 15px; background: var(--accent); color: black; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 5px; }
+
+        .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        .theme-card { padding: 15px; background: #0a0a0a; border: 1px solid #151515; border-radius: 12px; cursor: pointer; text-align: center; font-size: 0.7rem; font-weight: 800; color: #555; transition: 0.2s; }
+        .theme-card:hover { border-color: var(--accent); color: #fff; }
+
+        .credits-text { font-family: 'JetBrains Mono'; font-size: 0.85rem; line-height: 1.8; color: rgba(255,255,255,0.7); white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="grid-layer" id="home-grid"></div>
+    <canvas id="particles"></canvas>
+
+    <header>
+        <div class="header-left" style="width:40px;"></div> 
+        <nav>
+            <a onclick="showPage('home')" id="n-home" class="active">home</a>
+            <a onclick="showPage('streaming')" id="n-streaming">streaming</a>
+            <a onclick="showPage('anime')" id="n-anime">anime</a>
+            <a onclick="showPage('ai')" id="n-ai">ai</a>
+            <a onclick="showPage('games')" id="n-games">games</a>
+            <a onclick="showPage('soundboard')" id="n-soundboard">soundboard</a>
+        </nav>
+        <div class="header-right">
+            <svg class="gear-icon" onclick="toggleModal()" viewBox="0 0 24 24">
+                <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11.03L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.65 15.47,5.32 14.87,5.07L14.49,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.51,2.42L9.13,5.07C8.53,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.97 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11.03C4.53,11.34 4.5,11.67 4.5,12C4.5,11.67 4.53,11.34 4.57,11.03L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.97 4.46,5.05L7.44,6.05C7.96,5.66 8.53,5.32 9.13,5.07L9.51,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.49,2.42L14.87,5.07C15.47,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.97 19.54,5.05 19.66,5.27L21.66,8.73C21.78,8.95 21.73,9.22 21.54,9.37L19.43,11.03C19.47,11.34 19.5,11.67 19.5,12C19.5,12.33 19.47,12.65 19.43,12.97L21.54,14.63C21.73,14.78 21.78,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.03 19.05,18.95L16.56,17.95C16.04,18.34 15.47,18.68 14.87,18.93L14.49,21.58C14.46,21.82 14.25,22 14,22H10C9.75,22 9.54,21.82 9.51,21.58L9.13,18.93C8.53,18.68 7.96,18.35 7.44,17.95L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97Z"/>
+            </svg>
+        </div>
+    </header>
+
+    <div id="home" class="page active">
+        <h1 id="greet">welcome</h1>
+        <input type="text" class="search-bar" placeholder="search the waves..." onkeydown="if(event.key==='Enter') window.open('https://google.com/search?q='+this.value)">
+    </div>
+
+    <div id="streaming" class="page"><iframe src="stream.html"></iframe></div>
+    <div id="anime" class="page"><iframe src="https://animekai.gs"></iframe></div>
+    <div id="ai" class="page"><iframe src="https://coat-ai.base44.app"></iframe></div>
+    <div id="games" class="page"><iframe src="https://hoodamath.com"></iframe></div>
+    <div id="soundboard" class="page"><iframe src="soundboard.html"></iframe></div>
+
+    <div id="modal" onclick="if(event.target==this)toggleModal()">
+        <div class="modal-box">
+            <div class="modal-sidebar">
+                <div class="tab-trigger active" onclick="switchTab(this,'usr')">user</div>
+                <div class="tab-trigger" onclick="switchTab(this,'vis')">themes</div>
+                <div class="tab-trigger" onclick="switchTab(this,'clk')">cloaking</div>
+                <div class="tab-trigger" onclick="switchTab(this,'adm')">admin</div>
+                <div class="tab-trigger" onclick="switchTab(this,'crd')">credits</div>
+            </div>
+            <div class="modal-content">
+                <div id="usr" class="set-section active">
+                    <div id="auth-box">
+                        <h3 style="margin-bottom:20px;">access vault</h3>
+                        <input type="text" id="auth-user" class="auth-input" placeholder="username">
+                        <input type="password" id="auth-pass" class="auth-input" placeholder="passcode">
+                        <div style="display:flex; gap:10px;">
+                            <button class="auth-btn" onclick="handleAuth('login')">login</button>
+                            <button class="auth-btn" style="background:transparent; border:1px solid var(--outline); color:white;" onclick="handleAuth('signup')">sign up</button>
+                        </div>
+                    </div>
+                    <div id="profile-box" style="display:none;">
+                        <h3 style="margin-bottom:20px;">user overview</h3>
+                        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--outline); padding:25px; border-radius:20px;">
+                            <h2 id="logged-user">user</h2>
+                            <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <div style="padding:15px; background:#0a0a0a; border-radius:10px;">
+                                    <div style="font-size:0.6rem; opacity:0.4;">session</div>
+                                    <div id="session-time" style="font-weight:800;">00:00</div>
+                                </div>
+                                <button onclick="logout()" style="padding:15px; background:rgba(255,0,0,0.1); border:1px solid rgba(255,0,0,0.2); color:#ff5555; border-radius:10px; font-weight:800; cursor:pointer;">logout</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="vis" class="set-section"><div class="theme-grid" id="theme-grid"></div></div>
+                <div id="clk" class="set-section"><div class="theme-grid" id="cloak-grid"></div></div>
+                <div id="adm" class="set-section">
+                    <input type="password" id="admin-pass" class="search-bar" style="width:100%; border-radius:12px;" placeholder="admin key..." onkeydown="if(event.key==='Enter') runAdminAuth()">
+                    <div id="admin-main" style="display:none; margin-top:20px;"><div id="admin-log" style="font-family:monospace; color:#00ffaa; font-size:0.7rem;"></div></div>
+                </div>
+                <div id="crd" class="set-section">
+                    <h2 style="margin-bottom:20px; font-weight:800;">credits!</h2>
+                    <div class="credits-text">thanks for stopping by to read this.
+
+<b>yaans-coat</b> - developer
+<b>mrconductorr</b> - account management
+<b>idevs</b> - monetisation
+
+supporters with codenames: 
+<i>sea, ze, furry-consumer, pimples, meow</i>
+
+and to all our other supporters, i couldn't list all of you because there are so many of you, thanks for all the help guys!
+
+with lots of love
+
+- yaans-coat</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const themes = [
+            {n:"Onyx", b:"#030303", a:"#fff"}, {n:"Midnight", b:"#000c14", a:"#00e6ff"},
+            {n:"Toxic", b:"#051a10", a:"#00ffaa"}, {n:"Rose", b:"#1a050d", a:"#ff79c6"},
+            {n:"Nord", b:"#2e3440", a:"#88c0d0"}, {n:"Dracula", b:"#282a36", a:"#bd93f9"},
+            {n:"Emerald", b:"#020f08", a:"#50fa7b"}, {n:"Ocean", b:"#011627", a:"#82aaff"},
+            {n:"Amber", b:"#120b02", a:"#ffb86c"}, {n:"Amoled", b:"#000000", a:"#ffffff"},
+            {n:"Vapor", b:"#120a1c", a:"#ff00ff"}, {n:"Slate", b:"#1e293b", a:"#94a3b8"}
+        ];
+
+        const cloaks = [
+            {n:"Google", i:"https://google.com/favicon.ico", t:"Google"},
+            {n:"Drive", i:"https://ssl.gstatic.com/docs/doclist/images/infinite_arrow_favicon_5.ico", t:"My Drive - Google Drive"},
+            {n:"Gmail", i:"https://ssl.gstatic.com/ui/v1/icons/mail/images/2/itp/favicon_geometry_final_nv_2.ico", t:"Inbox - Gmail"},
+            {n:"Canvas", i:"https://instructure-uploads.s3.amazonaws.com/account_158020000000000001/attachments/43718/favicon.ico", t:"Canvas"},
+            {n:"Schoology", i:"https://asset-cdn.schoology.com/sites/all/themes/schoology_theme/favicon.ico", t:"Home | Schoology"},
+            {n:"Classroom", i:"https://www.gstatic.com/classroom/favicon.png", t:"Classes"},
+            {n:"Prodigy", i:"https://www.prodigygame.com/favicon.ico", t:"Play Prodigy"},
+            {n:"Canva", i:"https://www.canva.com/favicon.ico", t:"Design Anything"},
+            {n:"Desmos", i:"https://www.desmos.com/favicon.ico", t:"Desmos Calculator"},
+            {n:"Wikipedia", i:"https://en.wikipedia.org/static/favicon/wikipedia.ico", t:"Wikipedia"},
+            {n:"Zoom", i:"https://st1.zoom.us/zoom.ico", t:"Zoom"},
+            {n:"Docs", i:"https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico", t:"Google Docs"},
+            {n:"Slides", i:"https://ssl.gstatic.com/docs/presentations/images/favicon5.ico", t:"Google Slides"},
+            {n:"Outlook", i:"https://outlook.live.com/favicon.ico", t:"Mail - Outlook"},
+            {n:"Kahoot", i:"https://kahoot.it/favicon.ico", t:"Kahoot!"},
+            {n:"Reset", i:"https://i.postimg.cc/0j0vD8m8/Gemini-Generated-Image-6ppndp6ppndp6ppn.png", t:"black-waves"}
+        ];
+
+        function handleAuth(type) {
+            const u = document.getElementById('auth-user').value.toLowerCase().trim();
+            const p = document.getElementById('auth-pass').value;
+            if(!u || !p) return notify('fields required');
+            let users = JSON.parse(localStorage.getItem('bw_users') || '{}');
+            if(type === 'signup') {
+                if(users[u]) return notify('user exists');
+                users[u] = p; localStorage.setItem('bw_users', JSON.stringify(users));
+                notify('account secured');
+            } else {
+                if(users[u] === p) { sessionStorage.setItem('bw_active', u); loadProfile(); notify('access granted'); }
+                else { notify('invalid key'); }
+            }
+        }
+        function loadProfile() {
+            const active = sessionStorage.getItem('bw_active');
+            if(active) {
+                document.getElementById('auth-box').style.display = 'none';
+                document.getElementById('profile-box').style.display = 'block';
+                document.getElementById('logged-user').innerText = active;
+                document.getElementById('greet').innerText = `welcome, ${active}`;
+            }
+        }
+        function logout() { sessionStorage.removeItem('bw_active'); location.reload(); }
+
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById(id).classList.add('active'); 
+            document.getElementById('n-'+id).classList.add('active');
+            document.getElementById('home-grid').style.display = (id === 'home') ? 'block' : 'none';
+        }
+        function switchTab(el, id) {
+            document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.set-section').forEach(s => s.classList.remove('active'));
+            el.classList.add('active'); document.getElementById(id).classList.add('active');
+        }
+        function toggleModal() {
+            const m = document.getElementById('modal');
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
+        function notify(m) {
+            const n = document.createElement('div');
+            n.style = "position:fixed; bottom:20px; right:20px; background:var(--accent); color:#000; padding:10px 20px; border-radius:10px; font-weight:800; z-index:100000;";
+            n.innerText = m; document.body.appendChild(n); setTimeout(() => n.remove(), 2000);
+        }
+        function runAdminAuth() {
+            if(document.getElementById('admin-pass').value === 'html.5.code') {
+                document.getElementById('admin-main').style.display = 'block';
+                document.getElementById('admin-log').innerHTML += `<div>[${new Date().toLocaleTimeString()}] root_init: session active.</div>`;
+            }
+        }
+
+        let startTime = Date.now();
+        setInterval(() => {
+            let el = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('session-time').innerText = `${Math.floor(el/60).toString().padStart(2,'0')}:${(el%60).toString().padStart(2,'0')}`;
+        }, 1000);
+
+        const tg = document.getElementById('theme-grid');
+        themes.forEach(t => {
+            const c = document.createElement('div'); c.className = 'theme-card'; c.innerText = t.n;
+            c.onclick = () => {
+                document.documentElement.style.setProperty('--bg', t.b);
+                document.documentElement.style.setProperty('--accent', t.a);
+                document.documentElement.style.setProperty('--accent-glow', t.a + '33');
+            };
+            tg.appendChild(c);
+        });
+
+        const cg = document.getElementById('cloak-grid');
+        cloaks.forEach(c => {
+            const crd = document.createElement('div'); crd.className = 'theme-card'; crd.innerText = c.n;
+            crd.onclick = () => { document.title = c.t; document.getElementById('tab-icon').href = c.i; };
+            cg.appendChild(crd);
+        });
+
+        loadProfile();
+
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        let pts = Array.from({length: 40}, () => ({x: Math.random()*canvas.width, y: Math.random()*canvas.height, v: Math.random()*0.3+0.1, s: Math.random()*1.2}));
+        function animate() {
+            ctx.clearRect(0,0,canvas.width, canvas.height); ctx.fillStyle = "rgba(255,255,255,0.08)";
+            pts.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill(); p.y -= p.v; if(p.y < 0) p.y = canvas.height; });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>

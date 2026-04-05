@@ -1,0 +1,38 @@
+﻿@keyframes drift {
+    0% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-20px) scale(1.05); }
+    100% { transform: translateY(0px) scale(1); }
+}
+
+@keyframes revealUp {
+    0% { opacity: 0; transform: translateY(30px) scale(0.95); filter: blur(10px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes seekExpand {
+    0% { width: 380px; letter-spacing: 0px; }
+    100% { width: 620px; letter-spacing: 4px; }
+}
+
+@keyframes notificationIn {
+    0% { transform: translateX(120%) skewX(-10deg); opacity: 0; }
+    70% { transform: translateX(-10%) skewX(5deg); }
+    100% { transform: translateX(0) skewX(0); opacity: 1; }
+}
+
+@keyframes glassPulse {
+    0% { box-shadow: 0 0 0px var(--accent-glow); }
+    50% { box-shadow: 0 0 30px var(--accent-glow); }
+    100% { box-shadow: 0 0 0px var(--accent-glow); }
+}
+
+.anim-reveal { animation: revealUp 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards; }
+.anim-drift { animation: drift 10s ease-in-out infinite; }
+.anim-nav-active { text-shadow: 0 0 15px var(--accent); transition: 0.3s; }
+
+/* Notification Overrides */
+.toast {
+    animation: notificationIn 0.6s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--outline) !important;
+}
