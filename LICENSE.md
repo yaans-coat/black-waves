@@ -1,7 +1,4 @@
-                         Black Waves License 1.0
-
-                     Copyright (c) 2026 Black Waves
-
+  black-waves LICENSE 1.0
 
 (1) Definitions  
 “Software” means the Black Waves project, including all source code,  
